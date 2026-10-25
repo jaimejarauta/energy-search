@@ -1,0 +1,13 @@
+{
+  "config": "configs/smoke_test.yaml",
+  "date": "2026-10-25",
+  "tokens_generated": 40,
+  "latency_ms_per_token": 62.560826539993286,
+  "telemetry_latency_ms": 0.4722249507904053,
+  "pruned": false,
+  "pruned_at_step": null,
+  "prune_reason": "completed",
+  "mean_instability": 0.5165998947740411,
+  "passed": true,
+  "elapsed_sec": 2.5024330615997314
+}
