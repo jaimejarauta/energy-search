@@ -1,0 +1,21 @@
+# Energy-Search Smoke Test Configuration
+question: "Does Layer-15 relative velocity with K=4 persistence detect chaotic divergence without pruning single-step transitions?"
+date: "2026-10-25"
+
+model:
+  vocab_size: 100
+  d_model: 64
+  n_layers: 4
+  monitor_layer: -1
+
+inference:
+  max_new_tokens: 40
+  tau_instability: 2.5
+  k_persist: 4
+  window_size: 8
+  seed: 42
+
+pre_registered_rules:
+  pass_rule: "telemetry_latency_ms < 1.0 and false_prune_rate == 0.0"
+  kill_rule: "telemetry_latency_ms > 10.0"
+  max_runtime_sec: 120
