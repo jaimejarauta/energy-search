@@ -26,10 +26,12 @@ def compute_directional_similarity(h_curr: torch.Tensor, h_prev: torch.Tensor, h
         return cos_sim.item()
 
 def compute_token_entropy(logits: torch.Tensor, eps: float = 1e-9) -> float:
-    """Computes Shannon entropy of next-token distribution."""
+    """Computes Shannon entropy of next-token distribution with log-sum-exp numerical stability."""
     with torch.no_grad():
-        probs = torch.softmax(logits.float(), dim=-1)
-        entropy = -torch.sum(probs * torch.log(probs + eps))
+        log_probs = torch.log_softmax(logits.float(), dim=-1)
+        probs = torch.exp(log_probs)
+        p_log_p = torch.where(probs > 0, probs * log_probs, torch.zeros_like(probs))
+        entropy = -torch.sum(p_log_p, dim=-1).mean()
         return entropy.item()
 
 class RollingVelocityStats:

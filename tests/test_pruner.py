@@ -9,11 +9,11 @@ def test_persistence_logic_protects_single_spike():
     
     # Baseline steady tokens
     for _ in range(5):
-        should_prune, _ = pruner.evaluate_step(v_rel=0.05, token_entropy=0.5)
+        should_prune, _, _ = pruner.evaluate_step(v_rel=0.05, token_entropy=0.5)
         assert not should_prune, "Unexpected prune during baseline"
         
     # Single high-velocity spike (aha moment)
-    should_prune, inst_val = pruner.evaluate_step(v_rel=0.90, token_entropy=0.1)
+    should_prune, inst_val, _ = pruner.evaluate_step(v_rel=0.90, token_entropy=0.1)
     assert not should_prune, "Pruner incorrectly killed a single-step spike!"
     assert pruner.consecutive_spikes <= 1, "Counter should be at most 1"
 
@@ -28,7 +28,7 @@ def test_persistence_logic_triggers_on_sustained_chaos():
     # Sustained chaotic tokens with high entropy
     pruned = False
     for step in range(6):
-        should_prune, _ = pruner.evaluate_step(v_rel=0.80, token_entropy=2.0)
+        should_prune, _, _ = pruner.evaluate_step(v_rel=0.80, token_entropy=2.0)
         if should_prune:
             pruned = True
             break
