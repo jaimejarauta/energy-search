@@ -74,6 +74,8 @@ def sample_with_energy_pruning(
                         pruner.stats.history.append(v_prompt)
             elif isinstance(outputs, tuple):
                 logits, h_all = outputs
+                if isinstance(logits, torch.Tensor) and logits.ndim == 3:
+                    logits = logits[:, -1, :]
                 h_layer = h_all[:, -1, :] if (isinstance(h_all, torch.Tensor) and h_all.ndim == 3) else h_all
             else:
                 logits = outputs[:, -1, :] if outputs.ndim == 3 else outputs
