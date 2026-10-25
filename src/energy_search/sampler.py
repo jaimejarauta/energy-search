@@ -17,7 +17,8 @@ def sample_with_energy_pruning(
     freeze_ent_tau: float = 0.15,
     k_freeze: int = 6,
     device: Optional[torch.device] = None,
-    use_cache: bool = True
+    use_cache: bool = True,
+    eos_token_id: Optional[int] = None
 ) -> Dict[str, Any]:
     """Generates autoregressively while monitoring residual stream velocity with KV-caching.
     Prevents O(N^2) quadratic recomputation and detects both chaotic spikes and repetitive freeze loops.
@@ -98,6 +99,10 @@ def sample_with_energy_pruning(
             next_token = torch.argmax(logits, dim=-1, keepdim=True)
             generated = torch.cat([generated, next_token], dim=-1)
 
+            if eos_token_id is not None and (next_token == eos_token_id).all():
+                prune_reason = "eos_token"
+                break
+
     return {
         "generated_ids": generated,
         "pruned": pruned_step is not None,
@@ -107,3 +112,56 @@ def sample_with_energy_pruning(
         "mean_instability": sum(instability_history) / max(1, len(instability_history)),
     }
 
+def sample_greedy(
+    model: nn.Module,
+    input_ids: torch.Tensor,
+    max_new_tokens: int = 50,
+    device: Optional[torch.device] = None,
+    use_cache: bool = True,
+    eos_token_id: Optional[int] = None
+) -> Dict[str, Any]:
+    """Standard unpruned greedy decoding baseline with KV caching."""
+    if device is None:
+        device = input_ids.device
+
+    generated = input_ids.clone()
+    past_key_values = None
+    tokens_count = 0
+
+    with torch.inference_mode():
+        for step in range(max_new_tokens):
+            if step == 0:
+                current_input = generated
+                if hasattr(model, "config"):
+                    outputs = model(current_input, use_cache=use_cache)
+                else:
+                    outputs = model(current_input)
+            else:
+                if past_key_values is not None:
+                    current_input = generated[:, -1:]
+                    outputs = model(current_input, past_key_values=past_key_values, use_cache=True)
+                else:
+                    current_input = generated
+                    outputs = model(current_input)
+
+            if hasattr(outputs, "past_key_values") and outputs.past_key_values is not None:
+                past_key_values = outputs.past_key_values
+
+            if hasattr(outputs, "logits"):
+                logits = outputs.logits[:, -1, :]
+            elif isinstance(outputs, tuple):
+                logits = outputs[0][:, -1, :] if outputs[0].ndim == 3 else outputs[0]
+            else:
+                logits = outputs[:, -1, :] if outputs.ndim == 3 else outputs
+
+            tokens_count += 1
+            next_token = torch.argmax(logits, dim=-1, keepdim=True)
+            generated = torch.cat([generated, next_token], dim=-1)
+
+            if eos_token_id is not None and (next_token == eos_token_id).all():
+                break
+
+    return {
+        "generated_ids": generated,
+        "tokens_generated": tokens_count,
+    }

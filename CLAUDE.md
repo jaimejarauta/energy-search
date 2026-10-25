@@ -10,10 +10,13 @@ behaviour of yours, mine wins. If a rule blocks something you need, stop and tel
 | Residual stream relative velocity & entropy telemetry | `src/energy_search/telemetry.py` |
 | Dynamical Instability Index & K=4 persistence early-exit controller | `src/energy_search/pruner.py` |
 | Search rollout engine with dynamic branch pruning | `src/energy_search/sampler.py` |
+| GSM8K benchmark suite & metric accumulator | `src/energy_search/benchmarks.py` |
 | Smoke test configuration & pre-registered pass/fail rules | `configs/smoke_test.yaml` |
 | Execution script for Day 2 GSM8k smoke test | `scripts/run_smoke.py` |
+| Stage 2 GSM8K reasoning benchmark evaluation script | `scripts/eval_gsm8k.py` |
 | Unattended execution watchdog & pre-flight busy check | `scripts/watchdog.sh` |
 | Unit tests for velocity normalization & persistence logic | `tests/test_telemetry.py`, `tests/test_pruner.py` |
+| Unit tests for GSM8K benchmark evaluation and metrics | `tests/test_eval_gsm8k.py` |
 | Step-by-step onboarding, branching, W&B setup | `START_CODING.md` |
 
 ## Test Commands
