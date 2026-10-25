@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-25",
+  "git_commit": "f1f4be3e14d314a8e232a7a55a417254871a4399",
+  "model_name": "Qwen/Qwen2.5-Coder-0.5B",
+  "config": {
+    "model_name": "Qwen/Qwen2.5-Coder-0.5B",
+    "num_samples": 50,
+    "tau": 2.5,
+    "k_persist": 4,
+    "max_new_tokens": 256,
+    "device": null,
+    "dry_run": true,
+    "output_manifest": "results/gsm8k_stage2_manifest.json",
+    "seed": 1337,
+    "wandb": false,
+    "wandb_project": "moonshot-energy-search",
+    "wandb_name": null,
+    "wandb_mode": null
+  },
+  "metrics": {
+    "speedup_ratio": 2.8906093906093906,
+    "acc_greedy": 0.64,
+    "acc_pruned": 0.76,
+    "acc_truncated": 0.28,
+    "acc_drop": -0.12,
+    "false_prune_rate": 0.0,
+    "speedup_passed": true,
+    "acc_passed": true,
+    "gate_passed": true,
+    "total_greedy_tokens": 5787,
+    "total_pruned_tokens": 2002,
+    "total_truncated_tokens": 1875,
+    "avg_greedy_tokens": 115.74,
+    "avg_pruned_tokens": 40.04,
+    "prune_frequency": 0.42
+  },
+  "gate_passed": true,
+  "elapsed_sec": 6.818771362304688e-05
+}
