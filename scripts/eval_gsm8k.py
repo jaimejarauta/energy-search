@@ -150,6 +150,10 @@ def main():
     parser.add_argument("--output-manifest", type=str, default="results/gsm8k_stage2_manifest.json",
                         help="Path to output manifest JSON")
     parser.add_argument("--seed", type=int, default=1337, help="Random seed")
+    parser.add_argument("--wandb", action="store_true", help="Enable Weights & Biases telemetry")
+    parser.add_argument("--wandb-project", type=str, default="moonshot-energy-search", help="W&B project name")
+    parser.add_argument("--wandb-name", type=str, default=None, help="W&B run display name")
+    parser.add_argument("--wandb-mode", type=str, default=None, choices=["online", "offline", "disabled"], help="W&B mode")
     args = parser.parse_args()
 
     # Device auto-detection
@@ -165,6 +169,28 @@ def main():
     dev_name = torch.cuda.get_device_name(0) if device.type == "cuda" else str(device)
     print(f"Energy-Search GSM8K Benchmark | Model: {args.model_name} | Device: {device} ({dev_name})")
     print(f"Hyperparameters: tau={args.tau}, k_persist={args.k_persist}, max_new_tokens={args.max_new_tokens}")
+
+    # W&B Initialization
+    use_wandb = args.wandb or (os.environ.get("WANDB_API_KEY") is not None)
+    wandb_run = None
+    if use_wandb:
+        try:
+            import wandb
+            mode = args.wandb_mode or os.environ.get("WANDB_MODE", "online" if os.environ.get("WANDB_API_KEY") else "offline")
+            run_name = args.wandb_name or f"gsm8k-{args.model_name.split('/')[-1]}-tau{args.tau}"
+            wandb_run = wandb.init(
+                project=args.wandb_project,
+                group="gsm8k-reasoning",
+                job_type="eval",
+                name=run_name,
+                config=vars(args),
+                mode=mode,
+                dir=os.environ.get("WANDB_DIR", "/tmp/wandb")
+            )
+            print(f"[W&B] Initialized run '{run_name}' in project '{args.wandb_project}' (mode: {mode})")
+        except Exception as e:
+            print(f"[W&B Warning] Failed to initialize wandb: {e}. Continuing without W&B.")
+            use_wandb = False
 
     # Load GSM8K benchmark dataset
     print(f"Loading {args.num_samples} GSM8K benchmark problems...")
@@ -256,12 +282,30 @@ def main():
                 )
 
                 if (idx + 1) % 10 == 0 or idx == len(dataset) - 1:
-                    print(f"Processed {idx + 1}/{len(dataset)} problems | Current Speedup: {accumulator.compute_speedup_ratio():.2f}x")
+                    curr_speedup = accumulator.compute_speedup_ratio()
+                    print(f"Processed {idx + 1}/{len(dataset)} problems | Current Speedup: {curr_speedup:.2f}x")
+                    if use_wandb:
+                        wandb.log({
+                            "samples_evaluated": idx + 1,
+                            "running_speedup": curr_speedup,
+                            "tokens_pruned": sum(accumulator.pruned_tokens),
+                            "tokens_greedy": sum(accumulator.greedy_tokens),
+                        })
 
     elapsed_time = time.time() - t0
 
     # Evaluate Pre-registered Gate: Speedup >= 2.0x, accuracy within 10% of greedy
     gate_passed, metrics = accumulator.evaluate_gate(min_speedup=2.0, max_relative_acc_drop=0.10)
+
+    if use_wandb and wandb_run:
+        wandb.summary["speedup_ratio"] = metrics["speedup_ratio"]
+        wandb.summary["acc_greedy"] = metrics["acc_greedy"]
+        wandb.summary["acc_pruned"] = metrics["acc_pruned"]
+        wandb.summary["acc_truncated"] = metrics["acc_truncated"]
+        wandb.summary["acc_drop"] = metrics["acc_drop"]
+        wandb.summary["false_prune_rate"] = metrics["false_prune_rate"]
+        wandb.summary["gate_passed"] = gate_passed
+        wandb.finish()
 
     print("\n===========================================================")
     print("           STAGE 2 GSM8K BENCHMARK RESULTS                 ")
