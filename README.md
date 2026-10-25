@@ -25,7 +25,7 @@ python scripts/eval_gsm8k.py --model-name Qwen/Qwen2.5-Coder-0.5B --num-samples 
 ```
 
 ### Google Colab:
-Open `notebooks/colab_runner.ipynb` in Colab on a standard T4 GPU. Includes automatic machine teardown (`runtime.unassign()`) to protect compute credits upon completion.
+Open `notebooks/colab_runner_energy_search.ipynb` in Colab on a standard T4 GPU. Includes automatic machine teardown (`runtime.unassign()`) to protect compute credits upon completion.
 
 ## Telemetry
 Native Weights & Biases support via `--wandb` (project: `moonshot-energy-search`).
