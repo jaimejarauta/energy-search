@@ -33,14 +33,29 @@ class ToyTransformerLM(nn.Module):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/smoke_test.yaml")
+    parser.add_argument("--device", type=str, default=None, help="Device override (cuda, mps, cpu)")
+    parser.add_argument("--max-tokens", type=int, default=None, help="Max new tokens override")
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
         cfg = yaml.safe_load(f)
 
+    # Device auto-detection: CUDA -> Apple Silicon MPS -> CPU
+    if args.device:
+        device = torch.device(args.device)
+    elif torch.cuda.is_available():
+        device = torch.device("cuda")
+        torch.set_float32_matmul_precision("high")
+        torch.backends.cudnn.benchmark = True
+    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+        device = torch.device("mps")
+    else:
+        device = torch.device("cpu")
+
+    dev_name = torch.cuda.get_device_name(0) if device.type == "cuda" else str(device)
+    print(f"Running Energy-Search Smoke Test on: {device} ({dev_name})")
+
     torch.manual_seed(cfg["inference"]["seed"])
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Running Energy-Search Smoke Test on: {device}")
 
     model = ToyTransformerLM(
         vocab_size=cfg["model"]["vocab_size"],
@@ -51,11 +66,13 @@ def main():
 
     prompt = torch.randint(0, cfg["model"]["vocab_size"], (1, 10), device=device)
 
+    max_new_tokens = args.max_tokens or cfg["inference"]["max_new_tokens"]
+
     t0 = time.time()
     result = sample_with_energy_pruning(
         model=model,
         input_ids=prompt,
-        max_new_tokens=cfg["inference"]["max_new_tokens"],
+        max_new_tokens=max_new_tokens,
         monitor_layer_idx=cfg["model"]["monitor_layer"],
         tau=cfg["inference"]["tau_instability"],
         k_persist=cfg["inference"]["k_persist"],

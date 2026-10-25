@@ -39,7 +39,7 @@ def sample_with_energy_pruning(
     prune_reason: str = "completed"
     past_key_values = None
 
-    with torch.no_grad():
+    with torch.inference_mode():
         for step in range(max_new_tokens):
             # Causal forward pass: use single-token forward with KV cache when available
             if step == 0:
