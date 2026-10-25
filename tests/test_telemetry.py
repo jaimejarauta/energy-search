@@ -1,7 +1,12 @@
 """Unit tests for velocity and entropy telemetry."""
 
 import torch
-from energy_search.telemetry import compute_relative_velocity, compute_token_entropy, RollingVelocityStats
+from energy_search.telemetry import (
+    compute_relative_velocity,
+    compute_token_entropy,
+    compute_directional_similarity,
+    RollingVelocityStats
+)
 
 def test_relative_velocity_scale_invariance():
     torch.manual_seed(42)
@@ -24,3 +29,17 @@ def test_token_entropy_deterministic():
     logits_uni = torch.tensor([0.0, 0.0, 0.0])
     ent_uni = compute_token_entropy(logits_uni)
     assert abs(ent_uni - 1.0986) < 1e-3, f"Expected ~1.0986 entropy, got {ent_uni}"
+
+def test_directional_similarity():
+    h0 = torch.tensor([0.0, 0.0])
+    h1 = torch.tensor([1.0, 0.0])
+    h2 = torch.tensor([2.0, 0.0])
+    # Straight line: d0 = [1, 0], d1 = [1, 0], cos_sim should be 1.0
+    sim_collinear = compute_directional_similarity(h2, h1, h0)
+    assert abs(sim_collinear - 1.0) < 1e-4
+
+    # Reversal: d1 = [-1, 0], cos_sim should be -1.0
+    h2_rev = torch.tensor([0.0, 0.0])
+    sim_rev = compute_directional_similarity(h2_rev, h1, h0)
+    assert abs(sim_rev - (-1.0)) < 1e-4
+

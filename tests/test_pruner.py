@@ -34,3 +34,21 @@ def test_persistence_logic_triggers_on_sustained_chaos():
             break
             
     assert pruned, "Pruner failed to terminate sustained chaotic divergence!"
+
+def test_cognitive_freeze_loop_detection():
+    # Repetitive looping ("the the the...") has zero velocity and zero entropy
+    pruner = DynamicalInstabilityPruner(tau=2.0, k_persist=4, k_freeze=5, freeze_vel_tau=0.04, freeze_ent_tau=0.10)
+    pruner.set_prompt_entropy(1.0)
+    
+    pruned = False
+    prune_reason = ""
+    for _ in range(6):
+        should_prune, _, reason = pruner.evaluate_step(v_rel=0.01, token_entropy=0.02)
+        if should_prune:
+            pruned = True
+            prune_reason = reason
+            break
+            
+    assert pruned, "Pruner failed to detect hypo-dynamic cognitive freeze loop!"
+    assert prune_reason == "cognitive_freeze_loop"
+

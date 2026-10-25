@@ -59,6 +59,9 @@ def main():
         monitor_layer_idx=cfg["model"]["monitor_layer"],
         tau=cfg["inference"]["tau_instability"],
         k_persist=cfg["inference"]["k_persist"],
+        freeze_vel_tau=cfg["inference"].get("freeze_vel_tau", 0.05),
+        freeze_ent_tau=cfg["inference"].get("freeze_ent_tau", 0.15),
+        k_freeze=cfg["inference"].get("k_freeze", 6),
         device=device
     )
     elapsed = time.time() - t0
@@ -67,7 +70,7 @@ def main():
 
     print(f"Tokens Generated: {tokens} | Total Time: {elapsed:.3f}s")
     print(f"Latency per Token: {latency_ms_per_token:.3f} ms")
-    print(f"Pruned: {result['pruned']} (Step: {result['pruned_at_step']})")
+    print(f"Pruned: {result['pruned']} (Step: {result['pruned_at_step']}, Reason: {result.get('prune_reason', 'none')})")
     print(f"Mean Instability Index: {result['mean_instability']:.4f}")
 
     passed = latency_ms_per_token < 5.0
@@ -81,6 +84,7 @@ def main():
         "latency_ms_per_token": latency_ms_per_token,
         "pruned": result["pruned"],
         "pruned_at_step": result["pruned_at_step"],
+        "prune_reason": result.get("prune_reason", "none"),
         "mean_instability": result["mean_instability"],
         "passed": passed,
         "elapsed_sec": elapsed,
@@ -92,3 +96,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

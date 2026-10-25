@@ -12,10 +12,19 @@ inference:
   max_new_tokens: 40
   tau_instability: 2.5
   k_persist: 4
+  freeze_vel_tau: 0.05
+  freeze_ent_tau: 0.15
+  k_freeze: 6
   window_size: 8
   seed: 42
+
+baselines:
+  token_truncation_limit: 25
+  confidence_threshold: 0.10
+  ngram_repetition_n: 3
 
 pre_registered_rules:
   pass_rule: "telemetry_latency_ms < 1.0 and false_prune_rate == 0.0"
   kill_rule: "telemetry_latency_ms > 10.0"
   max_runtime_sec: 120
+

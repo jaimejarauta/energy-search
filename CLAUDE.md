@@ -12,6 +12,7 @@ behaviour of yours, mine wins. If a rule blocks something you need, stop and tel
 | Search rollout engine with dynamic branch pruning | `src/energy_search/sampler.py` |
 | Smoke test configuration & pre-registered pass/fail rules | `configs/smoke_test.yaml` |
 | Execution script for Day 2 GSM8k smoke test | `scripts/run_smoke.py` |
+| Unattended execution watchdog & pre-flight busy check | `scripts/watchdog.sh` |
 | Unit tests for velocity normalization & persistence logic | `tests/test_telemetry.py`, `tests/test_pruner.py` |
 | Step-by-step onboarding, branching, W&B setup | `START_CODING.md` |
 
@@ -129,3 +130,4 @@ people. Colab is the overflow.
 
 - Only public data and permissive-licence code; record the licence of every dataset and model used.
 - Nothing destructive, no scraping against terms of service, no secrets in the repo.
+

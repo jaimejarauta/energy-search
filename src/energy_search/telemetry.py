@@ -13,6 +13,18 @@ def compute_relative_velocity(h_curr: torch.Tensor, h_prev: torch.Tensor, eps: f
         norm_curr = torch.norm(h_curr.float(), p=2)
         return (diff / (norm_curr + eps)).item()
 
+def compute_directional_similarity(h_curr: torch.Tensor, h_prev: torch.Tensor, h_prev2: torch.Tensor, eps: float = 1e-6) -> float:
+    """Computes cosine similarity between successive velocity displacement vectors:
+    cos(d_t, d_{t-1}) where d_t = h_t - h_{t-1}.
+    """
+    with torch.no_grad():
+        d1 = h_curr.float() - h_prev.float()
+        d0 = h_prev.float() - h_prev2.float()
+        norm_d1 = torch.norm(d1, p=2) + eps
+        norm_d0 = torch.norm(d0, p=2) + eps
+        cos_sim = torch.sum(d1 * d0) / (norm_d1 * norm_d0)
+        return cos_sim.item()
+
 def compute_token_entropy(logits: torch.Tensor, eps: float = 1e-9) -> float:
     """Computes Shannon entropy of next-token distribution."""
     with torch.no_grad():
@@ -39,3 +51,4 @@ class RollingVelocityStats:
         
         z = (v_rel - mean_v) / std_v
         return max(0.0, z)
+

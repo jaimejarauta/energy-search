@@ -41,3 +41,4 @@ $$\mathcal{E}_t = \max(0, z_t) \times \left( \frac{\mathcal{H}_t}{\bar{\mathcal{
 Prune branch $b$ if and only if:
 $$\mathcal{E}_t > \tau_{\text{instability}} \quad \text{for } K = 4 \text{ consecutive tokens}$$
 This protects isolated $K=1, 2$ spikes while terminating sustained chaotic orbits.
+
