@@ -10,6 +10,11 @@ import yaml
 import torch
 import torch.nn as nn
 
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
+if os.path.join(REPO_ROOT, "src") not in sys.path:
+    sys.path.insert(0, os.path.join(REPO_ROOT, "src"))
+
 from energy_search.sampler import sample_with_energy_pruning
 
 class ToyTransformerLM(nn.Module):
