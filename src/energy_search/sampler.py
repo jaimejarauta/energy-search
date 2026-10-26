@@ -105,12 +105,14 @@ def sample_with_energy_pruning(
                 prune_reason = "eos_token"
                 break
 
+    num_new_tokens = generated.size(1) - input_ids.size(1)
     return {
         "generated_ids": generated,
         "pruned": pruned_step is not None,
         "pruned_at_step": pruned_step,
         "prune_reason": prune_reason,
-        "tokens_generated": len(h_history),
+        "tokens_generated": num_new_tokens,
+        "eval_steps": len(h_history),
         "mean_instability": sum(instability_history) / max(1, len(instability_history)),
     }
 

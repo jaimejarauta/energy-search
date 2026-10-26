@@ -1,11 +1,11 @@
 {
   "date": "2026-10-25",
-  "git_commit": "f1f4be3e14d314a8e232a7a55a417254871a4399",
+  "git_commit": "8ea38dd86657be99e025735b55f204345763ce90",
   "model_name": "Qwen/Qwen2.5-Coder-0.5B",
   "config": {
     "model_name": "Qwen/Qwen2.5-Coder-0.5B",
-    "num_samples": 50,
-    "tau": 2.5,
+    "num_samples": 100,
+    "tau": 3.5,
     "k_persist": 4,
     "max_new_tokens": 256,
     "device": null,
@@ -18,22 +18,22 @@
     "wandb_mode": null
   },
   "metrics": {
-    "speedup_ratio": 2.8906093906093906,
-    "acc_greedy": 0.64,
-    "acc_pruned": 0.76,
-    "acc_truncated": 0.28,
-    "acc_drop": -0.12,
+    "speedup_ratio": 2.840804890473765,
+    "acc_greedy": 0.69,
+    "acc_pruned": 0.82,
+    "acc_truncated": 0.32,
+    "acc_drop": -0.13,
     "false_prune_rate": 0.0,
     "speedup_passed": true,
     "acc_passed": true,
     "gate_passed": true,
-    "total_greedy_tokens": 5787,
-    "total_pruned_tokens": 2002,
-    "total_truncated_tokens": 1875,
-    "avg_greedy_tokens": 115.74,
-    "avg_pruned_tokens": 40.04,
-    "prune_frequency": 0.42
+    "total_greedy_tokens": 11153,
+    "total_pruned_tokens": 3926,
+    "total_truncated_tokens": 3708,
+    "avg_greedy_tokens": 111.53,
+    "avg_pruned_tokens": 39.26,
+    "prune_frequency": 0.4
   },
   "gate_passed": true,
-  "elapsed_sec": 6.818771362304688e-05
+  "elapsed_sec": 8.726119995117188e-05
 }
