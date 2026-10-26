@@ -42,3 +42,23 @@ Prune branch $b$ if and only if:
 $$\mathcal{E}_t > \tau_{\text{instability}} \quad \text{for } K = 4 \text{ consecutive tokens}$$
 This protects isolated $K=1, 2$ spikes while terminating sustained chaotic orbits.
 
+
+## Run log 2026-10-26: first real run (why greedy gives 1.00x)
+
+Qwen2.5-0.5B-Instruct, GSM8K test first 50, greedy, chat template, max 768 tokens, strict scoring
+(`####`, "the answer is", `\boxed{}`), MPS fp16. Default thresholds (tau 1.5, k 3, freeze_vel 0.25,
+freeze_ent 0.8, k_freeze 3, colinear 0.85). Manifest: results/gsm8k_real_qwen05_manifest.json.
+
+| Arm | Tokens | Accuracy |
+|---|---|---|
+| Greedy | 16,365 | 38.0% |
+| Energy pruner | 16,365 (never fired) | 38.0% |
+| Stop at first explicit answer | 16,520 | 38.0% |
+
+Per-token telemetry on the last layer (p05 / p50 / p95): relative velocity 0.65 / 1.04 / 1.41; directional cosine
+-0.71 / -0.41 / -0.11; token entropy 1.5e-5 / 0.009 / 1.19 nats.
+Why nothing fires: the freeze rule needs v_rel < 0.25 (below p05 by 2.6x); the colinear rule needs cos > 0.85
+(consecutive displacements of near-orthogonal states have cos ~ -0.5, so p95 is -0.11); the spike index multiplies
+z by H/H_prompt, and the median entropy is 0.009 nats.
+Decision: the thresholds were never calibrated to real telemetry. The next step is not re-tuning by hand but the
+traced study (Colab run 3): does velocity predict wrong answers beyond entropy at all.

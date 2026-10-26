@@ -1,0 +1,67 @@
+{
+  "date": "2026-10-25",
+  "git_commit": "8702497b7d723e7801cc1369963b36e3e60a0970",
+  "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+  "simulated": false,
+  "config": {
+    "model_name": "Qwen/Qwen2.5-0.5B-Instruct",
+    "num_samples": 50,
+    "temperature": 0.0,
+    "top_p": 1.0,
+    "tau": 1.5,
+    "k_persist": 3,
+    "freeze_vel_tau": 0.25,
+    "freeze_ent_tau": 0.8,
+    "k_freeze": 3,
+    "colinear_tau": 0.85,
+    "max_new_tokens": 768,
+    "device": "mps",
+    "dry_run": false,
+    "output_manifest": "results/gsm8k_real_qwen05_manifest.json",
+    "seed": 1337,
+    "wandb": false,
+    "wandb_project": "moonshot-energy-search",
+    "wandb_name": null,
+    "wandb_mode": null
+  },
+  "metrics": {
+    "speedup_ratio": 1.0,
+    "acc_greedy": 0.38,
+    "acc_pruned": 0.38,
+    "acc_truncated": 0.0,
+    "acc_drop": 0.0,
+    "false_prune_rate": 0.0,
+    "speedup_passed": false,
+    "acc_passed": true,
+    "gate_passed": false,
+    "total_greedy_tokens": 16677,
+    "total_pruned_tokens": 16677,
+    "total_truncated_tokens": 2000,
+    "avg_greedy_tokens": 333.54,
+    "avg_pruned_tokens": 333.54,
+    "prune_frequency": 0.0,
+    "stopseq_tokens": 16520,
+    "acc_stopseq": 0.38,
+    "speedup_vs_stopseq": 0.9905858367811956,
+    "beats_stopseq": false,
+    "telemetry_quantiles_p05_p50_p95": {
+      "v_rel": [
+        0.654672384262085,
+        1.0443923473358154,
+        1.4077397584915161
+      ],
+      "entropy": [
+        1.48157705552876e-05,
+        0.009043458849191666,
+        1.1856796741485596
+      ],
+      "cos": [
+        -0.7143712043762207,
+        -0.4057423770427704,
+        -0.11374539881944656
+      ]
+    }
+  },
+  "gate_passed": false,
+  "elapsed_sec": 711.0506570339203
+}
