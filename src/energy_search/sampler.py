@@ -3,7 +3,7 @@
 from typing import List, Dict, Any, Optional
 import torch
 import torch.nn as nn
-from .telemetry import compute_relative_velocity, compute_token_entropy
+from .telemetry import compute_relative_velocity, compute_token_entropy, compute_directional_similarity
 from .pruner import DynamicalInstabilityPruner
 
 def sample_with_energy_pruning(
@@ -16,6 +16,7 @@ def sample_with_energy_pruning(
     freeze_vel_tau: float = 0.05,
     freeze_ent_tau: float = 0.15,
     k_freeze: int = 6,
+    colinear_tau: float = 0.85,
     temperature: float = 0.0,
     top_p: float = 1.0,
     device: Optional[torch.device] = None,
@@ -33,7 +34,8 @@ def sample_with_energy_pruning(
         k_persist=k_persist,
         freeze_vel_tau=freeze_vel_tau,
         freeze_ent_tau=freeze_ent_tau,
-        k_freeze=k_freeze
+        k_freeze=k_freeze,
+        colinear_tau=colinear_tau
     )
     generated = input_ids.clone()
     h_history: List[torch.Tensor] = []
@@ -88,10 +90,15 @@ def sample_with_energy_pruning(
             if step == 0:
                 pruner.set_prompt_entropy(entropy)
                 v_rel = 0.0
+                cos_sim = 0.0
+            elif step == 1:
+                v_rel = compute_relative_velocity(h_layer, h_history[-1])
+                cos_sim = 0.0
             else:
                 v_rel = compute_relative_velocity(h_layer, h_history[-1])
+                cos_sim = compute_directional_similarity(h_layer, h_history[-1], h_history[-2])
 
-            should_prune, inst_val, reason = pruner.evaluate_step(v_rel, entropy)
+            should_prune, inst_val, reason = pruner.evaluate_step(v_rel, entropy, cos_sim=cos_sim)
             h_history.append(h_layer)
             instability_history.append(inst_val)
 

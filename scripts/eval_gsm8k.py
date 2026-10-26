@@ -145,11 +145,12 @@ def main():
     parser.add_argument("--num-candidates", type=int, default=1, help="Number of branching search candidates per problem (Best-of-N)")
     parser.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature (0.0 for greedy)")
     parser.add_argument("--top-p", type=float, default=1.0, help="Top-p nucleus sampling cutoff")
-    parser.add_argument("--tau", type=float, default=2.5, help="Instability index threshold tau")
-    parser.add_argument("--k-persist", type=int, default=4, help="Persistence spike step count k")
-    parser.add_argument("--freeze-vel-tau", type=float, default=0.05, help="Hypo-dynamic velocity threshold")
-    parser.add_argument("--freeze-ent-tau", type=float, default=0.15, help="Hypo-dynamic token entropy threshold")
-    parser.add_argument("--k-freeze", type=int, default=6, help="Consecutive freeze steps to prune")
+    parser.add_argument("--tau", type=float, default=1.5, help="Instability index threshold tau")
+    parser.add_argument("--k-persist", type=int, default=3, help="Persistence spike step count k")
+    parser.add_argument("--freeze-vel-tau", type=float, default=0.25, help="Hypo-dynamic velocity threshold")
+    parser.add_argument("--freeze-ent-tau", type=float, default=0.80, help="Hypo-dynamic token entropy threshold")
+    parser.add_argument("--k-freeze", type=int, default=3, help="Consecutive freeze steps to prune")
+    parser.add_argument("--colinear-tau", type=float, default=0.85, help="Directional cosine similarity threshold for looping")
     parser.add_argument("--max-new-tokens", type=int, default=256, help="Maximum generated tokens")
     parser.add_argument("--device", type=str, default=None, help="Device (cuda, mps, cpu)")
     parser.add_argument("--dry-run", action="store_true", help="Run fast synthetic dry-run verification")
@@ -248,6 +249,12 @@ def main():
                     max_new_tokens=args.max_new_tokens,
                     tau=args.tau,
                     k_persist=args.k_persist,
+                    freeze_vel_tau=args.freeze_vel_tau,
+                    freeze_ent_tau=args.freeze_ent_tau,
+                    k_freeze=args.k_freeze,
+                    colinear_tau=args.colinear_tau,
+                    temperature=args.temperature,
+                    top_p=args.top_p,
                     device=device,
                     eos_token_id=tokenizer.eos_token_id
                 )
@@ -260,6 +267,8 @@ def main():
                     model=model,
                     input_ids=input_ids,
                     max_new_tokens=args.max_new_tokens,
+                    temperature=args.temperature,
+                    top_p=args.top_p,
                     device=device,
                     eos_token_id=tokenizer.eos_token_id
                 )
