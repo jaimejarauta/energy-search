@@ -312,3 +312,34 @@ def load_gsm8k_dataset(num_samples: int = 50, use_standalone: bool = False) -> L
         samples.append(suite[idx % len(suite)])
         idx += 1
     return samples
+
+
+def extract_boxed(text: str) -> Optional[str]:
+    """Content of the last \\boxed{...}, with nested braces; None if absent."""
+    start = text.rfind("\\boxed{")
+    if start < 0:
+        return None
+    i, depth = start + len("\\boxed{"), 1
+    for j in range(i, len(text)):
+        depth += {"{": 1, "}": -1}.get(text[j], 0)
+        if depth == 0:
+            return text[i:j]
+    return None
+
+
+def math_answers_equal(a: str, b: str) -> bool:
+    """Light normalization for MATH answers (spacing, \\left/\\right, dfrac/tfrac, numeric equality).
+    Approximate: misses equivalent forms such as \\frac12 vs \\frac{1}{2}; report it as such.
+    """
+    def norm(s: str) -> str:
+        for old, new in (("\\left", ""), ("\\right", ""), ("\\dfrac", "\\frac"), ("\\tfrac", "\\frac"),
+                         ("\\!", ""), ("$", ""), (" ", "")):
+            s = s.replace(old, new)
+        return s.strip().rstrip(".")
+    na, nb = norm(a), norm(b)
+    if na == nb:
+        return True
+    try:
+        return abs(float(na.replace(",", "")) - float(nb.replace(",", ""))) < 1e-6
+    except ValueError:
+        return False

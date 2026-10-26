@@ -114,3 +114,15 @@ def test_boxed_answers_count_as_explicit():
     assert evaluate_answer(r"so she makes \boxed{18} dollars", 18.0)
     assert evaluate_answer(r"\boxed{1,200}", 1200.0)
     assert truncate_at_answer(r"total \boxed{18}. Next") == r"total \boxed{18}"
+
+
+def test_math_boxed_string_matching():
+    from energy_search.benchmarks import extract_boxed, math_answers_equal
+    assert extract_boxed(r"so \boxed{\frac{1}{2}} done") == r"\frac{1}{2}"
+    assert extract_boxed(r"\boxed{x^{2}+1} and later \boxed{3}") == "3"  # last box wins
+    assert extract_boxed("no box") is None
+    assert math_answers_equal(r"\dfrac{1}{2}", r"\frac12") is False  # brace-less form not normalized
+    assert math_answers_equal(r"\dfrac{1}{2}", r"\frac{1}{2}")
+    assert math_answers_equal(r"\left( 3, 4 \right)", "(3,4)")
+    assert math_answers_equal("5.0", "5")
+    assert not math_answers_equal("5", "6")
