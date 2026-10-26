@@ -42,6 +42,7 @@ def sample_with_energy_pruning(
     generated = input_ids.clone()
     h_history: List[torch.Tensor] = []
     instability_history: List[float] = []
+    trace = {"v_rel": [], "entropy": [], "cos": []}  # per-token telemetry for threshold calibration
     pruned_step: Optional[int] = None
     prune_reason: str = "completed"
     past_key_values = None
@@ -103,6 +104,10 @@ def sample_with_energy_pruning(
                 cos_sim = compute_directional_similarity(h_layer, h_history[-1], h_history[-2])
 
             should_prune, inst_val, reason = pruner.evaluate_step(v_rel, entropy, cos_sim=cos_sim)
+            if step > 0:
+                trace["v_rel"].append(v_rel)
+                trace["entropy"].append(entropy)
+                trace["cos"].append(cos_sim)
             h_history.append(h_layer)
             instability_history.append(inst_val)
 
@@ -141,6 +146,7 @@ def sample_with_energy_pruning(
         "tokens_generated": num_new_tokens,
         "eval_steps": len(h_history),
         "mean_instability": sum(instability_history) / max(1, len(instability_history)),
+        "trace": trace,
     }
 
 def sample_greedy(

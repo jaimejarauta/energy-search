@@ -107,3 +107,10 @@ def test_truncate_at_answer():
     assert truncate_at_answer(text) == "So 3 + 4 = 7. #### 7"
     assert truncate_at_answer("Thus the answer is 12. Then") == "Thus the answer is 12"
     assert truncate_at_answer("no answer yet") is None
+
+
+def test_boxed_answers_count_as_explicit():
+    from energy_search.benchmarks import truncate_at_answer
+    assert evaluate_answer(r"so she makes \boxed{18} dollars", 18.0)
+    assert evaluate_answer(r"\boxed{1,200}", 1200.0)
+    assert truncate_at_answer(r"total \boxed{18}. Next") == r"total \boxed{18}"

@@ -108,13 +108,17 @@ GSM8K_STANDALONE_SUITE = [
     }
 ]
 
-ANSWER_PATTERNS = (r"####\s*([+-]?[\d,]+(?:\.\d+)?)", r"[Tt]he answer is:?\s*\$?([+-]?[\d,]+(?:\.\d+)?)")
+ANSWER_PATTERNS = (
+    r"####\s*([+-]?[\d,]+(?:\.\d+)?)",
+    r"[Tt]he answer is:?\s*\$?([+-]?[\d,]+(?:\.\d+)?)",
+    r"\\boxed\{\s*\$?([+-]?[\d,]+(?:\.\d+)?)\s*\}",
+)
 
 
 def truncate_at_answer(text: str) -> Optional[str]:
     """Prefix of text ending at the first explicit answer ('#### n' or 'the answer is n'); None if absent."""
     ends = [m.end() for pat in ANSWER_PATTERNS for m in [re.search(pat, text)] if m]
-    return text[:min(ends)].rstrip(".,") if ends else None
+    return text[:min(ends)] if ends else None
 
 
 def extract_numerical_answer(text: str, strict: bool = False) -> Optional[float]:
@@ -139,6 +143,13 @@ def extract_numerical_answer(text: str, strict: bool = False) -> Optional[float]
         raw_val = match_phrase.group(1).replace(",", "")
         try:
             return float(raw_val)
+        except ValueError:
+            pass
+
+    match_boxed = re.search(ANSWER_PATTERNS[2], text)
+    if match_boxed:
+        try:
+            return float(match_boxed.group(1).replace(",", ""))
         except ValueError:
             pass
 

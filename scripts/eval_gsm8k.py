@@ -151,7 +151,7 @@ def main():
     parser.add_argument("--freeze-ent-tau", type=float, default=0.80, help="Hypo-dynamic token entropy threshold")
     parser.add_argument("--k-freeze", type=int, default=3, help="Consecutive freeze steps to prune")
     parser.add_argument("--colinear-tau", type=float, default=0.85, help="Directional cosine similarity threshold for looping")
-    parser.add_argument("--max-new-tokens", type=int, default=256, help="Maximum generated tokens")
+    parser.add_argument("--max-new-tokens", type=int, default=768, help="Maximum generated tokens (256 truncated most instruct answers)")
     parser.add_argument("--device", type=str, default=None, help="Device (cuda, mps, cpu)")
     parser.add_argument("--dry-run", action="store_true", help="Run fast synthetic dry-run verification")
     parser.add_argument("--output-manifest", type=str, default="results/gsm8k_stage2_manifest.json",
@@ -236,6 +236,7 @@ def main():
 
         accumulator = TokenSavingsAccumulator()
         stopseq_tokens, stopseq_correct = [], []
+        traces = {"v_rel": [], "entropy": [], "cos": []}
         for idx, item in enumerate(dataset):
                 q = item["question"]
                 gt = item["ground_truth"]
@@ -264,6 +265,8 @@ def main():
                     device=device,
                     eos_token_id=tokenizer.eos_token_id
                 )
+                for key in traces:
+                    traces[key].extend(res_pruned["trace"][key])
                 pred_pruned_text = tokenizer.decode(res_pruned["generated_ids"][0][prompt_len:], skip_special_tokens=True)
                 c_pruned = evaluate_answer(pred_pruned_text, gt)
                 n_pruned = res_pruned["tokens_generated"]
@@ -329,6 +332,11 @@ def main():
         metrics["speedup_vs_stopseq"] = sum(stopseq_tokens) / max(1, metrics["total_pruned_tokens"])
         metrics["beats_stopseq"] = (metrics["speedup_vs_stopseq"] > 1.0 and metrics["acc_pruned"] >= metrics["acc_stopseq"])
         gate_passed = gate_passed and metrics["beats_stopseq"]
+        # Telemetry distribution: where the thresholds sit relative to the data
+        q = torch.tensor([0.05, 0.5, 0.95])
+        metrics["telemetry_quantiles_p05_p50_p95"] = {
+            k: torch.quantile(torch.tensor(v, dtype=torch.float32), q).tolist() for k, v in traces.items() if v}
+        print(f"Telemetry p05/p50/p95: {metrics['telemetry_quantiles_p05_p50_p95']}")
     else:
         gate_passed = None  # simulated numbers are hard-coded; never evidence
 
