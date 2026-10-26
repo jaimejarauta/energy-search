@@ -281,24 +281,17 @@ class TokenSavingsAccumulator:
 def load_gsm8k_dataset(num_samples: int = 50, use_standalone: bool = False) -> List[Dict[str, Any]]:
     """Loads GSM8K test subset from HuggingFace datasets or built-in standalone suite."""
     if not use_standalone:
-        try:
-            from datasets import load_dataset
-            ds = load_dataset("gsm8k", "main", split="test")
-            samples = []
-            for item in ds:
-                gt = extract_numerical_answer(item["answer"])
-                if gt is not None:
-                    samples.append({
-                        "question": item["question"],
-                        "ground_truth": gt,
-                        "solution": item["answer"]
-                    })
-                if len(samples) >= num_samples:
-                    break
-            if samples:
-                return samples
-        except Exception:
-            pass
+        # No silent fallback: a failed load used to substitute the 20-problem toy suite
+        from datasets import load_dataset
+        ds = load_dataset("openai/gsm8k", "main", split="test")
+        samples = []
+        for item in ds:
+            gt = extract_numerical_answer(item["answer"])
+            if gt is not None:
+                samples.append({"question": item["question"], "ground_truth": gt, "solution": item["answer"]})
+            if len(samples) >= num_samples:
+                break
+        return samples
 
     # Built-in standalone fallback suite
     suite = GSM8K_STANDALONE_SUITE
