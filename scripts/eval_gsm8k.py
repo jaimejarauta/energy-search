@@ -205,9 +205,8 @@ def main():
         try:
             import transformers
             from transformers import AutoModelForCausalLM, AutoTokenizer
-        except ImportError:
-            print("Notice: 'transformers' library not available in host environment. Falling back to benchmark simulation.")
-            run_simulation = True
+        except ImportError as e:
+            raise SystemExit(f"transformers library required for real benchmark: {e}. Pass --dry-run for simulation.")
 
     if run_simulation:
         print("\n--- Executing Stage 2 GSM8K Benchmark (Dry-Run / Simulation Mode) ---")
@@ -226,13 +225,10 @@ def main():
             model = AutoModelForCausalLM.from_pretrained(args.model_name, torch_dtype=dtype).to(device)
             model.eval()
         except Exception as e:
-            print(f"Notice: Model loading encountered exception ({e}). Falling back to simulation.")
-            accumulator = run_dry_run_simulation(dataset, args.tau, args.k_persist, args.max_new_tokens, args.seed)
-            run_simulation = True
+            raise SystemExit(f"Model load failed ({e}). Pass --dry-run for simulation.")
 
-        if not run_simulation:
-            accumulator = TokenSavingsAccumulator()
-            for idx, item in enumerate(dataset):
+        accumulator = TokenSavingsAccumulator()
+        for idx, item in enumerate(dataset):
                 q = item["question"]
                 gt = item["ground_truth"]
                 prompt_text = f"Question: {q}\nAnswer: Let's think step by step.\n"
@@ -333,6 +329,7 @@ def main():
         "date": "2026-10-25",
         "git_commit": get_git_hash(),
         "model_name": args.model_name,
+        "simulated": run_simulation,
         "config": vars(args),
         "metrics": metrics,
         "gate_passed": gate_passed,

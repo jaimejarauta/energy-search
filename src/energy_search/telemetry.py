@@ -42,11 +42,11 @@ class RollingVelocityStats:
 
     def update_and_normalize(self, v_rel: float, eps: float = 1e-6) -> float:
         """Appends v_rel and returns normalized z-score against historical window."""
+        window = self.history[-self.window_size:]
         self.history.append(v_rel)
-        if len(self.history) < 2:
+        if len(window) < 2:
             return 0.0
         
-        window = self.history[-self.window_size:]
         mean_v = sum(window) / len(window)
         variance = sum((x - mean_v) ** 2 for x in window) / max(1, len(window) - 1)
         std_v = math.sqrt(variance) + eps
