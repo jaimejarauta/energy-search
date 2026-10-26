@@ -16,6 +16,8 @@ def sample_with_energy_pruning(
     freeze_vel_tau: float = 0.05,
     freeze_ent_tau: float = 0.15,
     k_freeze: int = 6,
+    temperature: float = 0.0,
+    top_p: float = 1.0,
     device: Optional[torch.device] = None,
     use_cache: bool = True,
     eos_token_id: Optional[int] = None
@@ -98,7 +100,21 @@ def sample_with_energy_pruning(
                 prune_reason = reason
                 break
 
-            next_token = torch.argmax(logits, dim=-1, keepdim=True)
+            if temperature > 0.0:
+                probs = torch.softmax(logits / max(1e-5, temperature), dim=-1)
+                if top_p < 1.0:
+                    sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+                    cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
+                    sorted_indices_to_remove = cumulative_probs > top_p
+                    sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+                    sorted_indices_to_remove[..., 0] = 0
+                    indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
+                    probs = probs.masked_fill(indices_to_remove, 0.0)
+                    probs = probs / probs.sum(dim=-1, keepdim=True)
+                next_token = torch.multinomial(probs, num_samples=1)
+            else:
+                next_token = torch.argmax(logits, dim=-1, keepdim=True)
+
             generated = torch.cat([generated, next_token], dim=-1)
 
             if eos_token_id is not None and (next_token == eos_token_id).all():
@@ -120,11 +136,13 @@ def sample_greedy(
     model: nn.Module,
     input_ids: torch.Tensor,
     max_new_tokens: int = 50,
+    temperature: float = 0.0,
+    top_p: float = 1.0,
     device: Optional[torch.device] = None,
     use_cache: bool = True,
     eos_token_id: Optional[int] = None
 ) -> Dict[str, Any]:
-    """Standard unpruned greedy decoding baseline with KV caching."""
+    """Standard unpruned decoding baseline with KV caching."""
     if device is None:
         device = input_ids.device
 
@@ -159,7 +177,21 @@ def sample_greedy(
                 logits = outputs[:, -1, :] if outputs.ndim == 3 else outputs
 
             tokens_count += 1
-            next_token = torch.argmax(logits, dim=-1, keepdim=True)
+            if temperature > 0.0:
+                probs = torch.softmax(logits / max(1e-5, temperature), dim=-1)
+                if top_p < 1.0:
+                    sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+                    cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
+                    sorted_indices_to_remove = cumulative_probs > top_p
+                    sorted_indices_to_remove[..., 1:] = sorted_indices_to_remove[..., :-1].clone()
+                    sorted_indices_to_remove[..., 0] = 0
+                    indices_to_remove = sorted_indices_to_remove.scatter(1, sorted_indices, sorted_indices_to_remove)
+                    probs = probs.masked_fill(indices_to_remove, 0.0)
+                    probs = probs / probs.sum(dim=-1, keepdim=True)
+                next_token = torch.multinomial(probs, num_samples=1)
+            else:
+                next_token = torch.argmax(logits, dim=-1, keepdim=True)
+
             generated = torch.cat([generated, next_token], dim=-1)
 
             if eos_token_id is not None and (next_token == eos_token_id).all():
