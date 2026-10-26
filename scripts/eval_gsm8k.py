@@ -21,6 +21,7 @@ from energy_search.benchmarks import (
     load_gsm8k_dataset,
     extract_numerical_answer,
     evaluate_answer,
+    truncate_at_answer,
     TokenSavingsAccumulator,
 )
 
@@ -139,10 +140,9 @@ def run_dry_run_simulation(
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate Energy-Search Lyapunov Pruning on GSM8K")
-    parser.add_argument("--model-name", type=str, default="Qwen/Qwen2.5-Coder-0.5B",
+    parser.add_argument("--model-name", type=str, default="Qwen/Qwen2.5-0.5B-Instruct",
                         help="HuggingFace model repository ID")
     parser.add_argument("--num-samples", type=int, default=50, help="Number of benchmark evaluation samples")
-    parser.add_argument("--num-candidates", type=int, default=1, help="Number of branching search candidates per problem (Best-of-N)")
     parser.add_argument("--temperature", type=float, default=0.0, help="Sampling temperature (0.0 for greedy)")
     parser.add_argument("--top-p", type=float, default=1.0, help="Top-p nucleus sampling cutoff")
     parser.add_argument("--tau", type=float, default=1.5, help="Instability index threshold tau")
@@ -235,10 +235,16 @@ def main():
             raise SystemExit(f"Model load failed ({e}). Pass --dry-run for simulation.")
 
         accumulator = TokenSavingsAccumulator()
+        stopseq_tokens, stopseq_correct = [], []
         for idx, item in enumerate(dataset):
                 q = item["question"]
                 gt = item["ground_truth"]
-                prompt_text = f"Question: {q}\nAnswer: Let's think step by step.\n"
+                instruction = f"{q}\nSolve step by step, then give the final answer as '#### <number>'."
+                if getattr(tokenizer, "chat_template", None):
+                    prompt_text = tokenizer.apply_chat_template([{"role": "user", "content": instruction}],
+                                                                tokenize=False, add_generation_prompt=True)
+                else:
+                    prompt_text = f"Question: {instruction}\nAnswer: Let's think step by step.\n"
                 input_ids = tokenizer(prompt_text, return_tensors="pt").input_ids.to(device)
                 prompt_len = input_ids.size(1)
 
@@ -281,6 +287,15 @@ def main():
                 pred_truncated_text = tokenizer.decode(res_greedy["generated_ids"][0][prompt_len:prompt_len + n_truncated], skip_special_tokens=True)
                 c_truncated = evaluate_answer(pred_truncated_text, gt)
 
+                # 4. Stop-sequence baseline: greedy, halted at the first explicit answer (exact for greedy decoding)
+                stop_text = truncate_at_answer(pred_greedy_text)
+                if stop_text is None:
+                    stop_text, n_stop = pred_greedy_text, n_greedy
+                else:
+                    n_stop = min(n_greedy, len(tokenizer(stop_text, add_special_tokens=False).input_ids))
+                stopseq_tokens.append(n_stop)
+                stopseq_correct.append(evaluate_answer(stop_text, gt))
+
                 accumulator.add_sample(
                     n_greedy=n_greedy,
                     n_pruned=n_pruned,
@@ -307,6 +322,15 @@ def main():
 
     # Evaluate Pre-registered Gate: Speedup >= 2.0x, accuracy within 10% of greedy
     gate_passed, metrics = accumulator.evaluate_gate(min_speedup=2.0, max_relative_acc_drop=0.10)
+    if not run_simulation:
+        # Added 2026-10-26: the pruner must also use fewer tokens than the stop-sequence baseline at >= its accuracy
+        metrics["stopseq_tokens"] = sum(stopseq_tokens)
+        metrics["acc_stopseq"] = sum(stopseq_correct) / max(1, len(stopseq_correct))
+        metrics["speedup_vs_stopseq"] = sum(stopseq_tokens) / max(1, metrics["total_pruned_tokens"])
+        metrics["beats_stopseq"] = (metrics["speedup_vs_stopseq"] > 1.0 and metrics["acc_pruned"] >= metrics["acc_stopseq"])
+        gate_passed = gate_passed and metrics["beats_stopseq"]
+    else:
+        gate_passed = None  # simulated numbers are hard-coded; never evidence
 
     if use_wandb and wandb_run:
         wandb.summary["speedup_ratio"] = metrics["speedup_ratio"]
@@ -332,11 +356,14 @@ def main():
     print(f"Truncated Pass@1 Accuracy:     {metrics['acc_truncated'] * 100:.1f}%")
     print(f"Accuracy Drop (Greedy - Prun): {metrics['acc_drop'] * 100:+.1f}% (Allowable: <= 10.0%)")
     print(f"False Prune Rate:              {metrics['false_prune_rate'] * 100:.1f}%")
+    if "acc_stopseq" in metrics:
+        print(f"Stop-Seq Baseline:             {metrics['stopseq_tokens']} tokens, acc {metrics['acc_stopseq'] * 100:.1f}% "
+              f"(pruner speedup vs it: {metrics['speedup_vs_stopseq']:.2f}x)")
     print(f"Prune Trigger Frequency:       {metrics['prune_frequency'] * 100:.1f}%")
     print(f"-----------------------------------------------------------")
     print(f"Speedup Criteria Met:          {'PASS' if metrics['speedup_passed'] else 'FAIL'}")
     print(f"Accuracy Criteria Met:         {'PASS' if metrics['acc_passed'] else 'FAIL'}")
-    print(f"OVERALL STAGE 2 GATE:          {'PASS' if gate_passed else 'FAIL'}")
+    print(f"OVERALL STAGE 2 GATE:          {'NOT EVALUATED (simulation)' if gate_passed is None else 'PASS' if gate_passed else 'FAIL'}")
     print("===========================================================")
 
     os.makedirs(os.path.dirname(args.output_manifest), exist_ok=True)
@@ -355,7 +382,7 @@ def main():
         json.dump(manifest, f, indent=2)
 
     print(f"Manifest written to {args.output_manifest}")
-    sys.exit(0 if gate_passed else 1)
+    sys.exit(0 if gate_passed is not False else 1)
 
 if __name__ == "__main__":
     main()

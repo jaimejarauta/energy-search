@@ -28,6 +28,8 @@ def sample_with_energy_pruning(
     """
     if device is None:
         device = input_ids.device
+    # Telemetry and the pruner are per-sequence; batching would pool velocity/entropy across rows
+    assert input_ids.size(0) == 1, "sample_with_energy_pruning supports batch size 1"
 
     pruner = DynamicalInstabilityPruner(
         tau=tau,
@@ -88,7 +90,9 @@ def sample_with_energy_pruning(
             entropy = compute_token_entropy(logits)
 
             if step == 0:
-                pruner.set_prompt_entropy(entropy)
+                # Reference entropy over the prompt positions (falls back to the first generated token)
+                prompt_logits = outputs.logits[:, :-1] if hasattr(outputs, "logits") and outputs.logits.size(1) > 1 else logits
+                pruner.set_prompt_entropy(compute_token_entropy(prompt_logits))
                 v_rel = 0.0
                 cos_sim = 0.0
             elif step == 1:

@@ -108,8 +108,19 @@ GSM8K_STANDALONE_SUITE = [
     }
 ]
 
-def extract_numerical_answer(text: str) -> Optional[float]:
-    """Extracts numeric answer from reasoning traces following GSM8k conventions."""
+ANSWER_PATTERNS = (r"####\s*([+-]?[\d,]+(?:\.\d+)?)", r"[Tt]he answer is:?\s*\$?([+-]?[\d,]+(?:\.\d+)?)")
+
+
+def truncate_at_answer(text: str) -> Optional[str]:
+    """Prefix of text ending at the first explicit answer ('#### n' or 'the answer is n'); None if absent."""
+    ends = [m.end() for pat in ANSWER_PATTERNS for m in [re.search(pat, text)] if m]
+    return text[:min(ends)].rstrip(".,") if ends else None
+
+
+def extract_numerical_answer(text: str, strict: bool = False) -> Optional[float]:
+    """Extracts numeric answer from reasoning traces following GSM8k conventions.
+    strict: only explicit answer markers count; no last-number fallback.
+    """
     if not text:
         return None
 
@@ -131,6 +142,9 @@ def extract_numerical_answer(text: str) -> Optional[float]:
         except ValueError:
             pass
 
+    if strict:
+        return None
+
     # 3. Fallback: Extract the last number appearing in the output
     numbers = re.findall(r"[-+]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?", text)
     if numbers:
@@ -142,9 +156,9 @@ def extract_numerical_answer(text: str) -> Optional[float]:
 
     return None
 
-def evaluate_answer(pred_text: str, ground_truth: float, tolerance: float = 1e-4) -> bool:
-    """Evaluates whether extracted answer matches ground truth."""
-    pred = extract_numerical_answer(pred_text)
+def evaluate_answer(pred_text: str, ground_truth: float, tolerance: float = 1e-4, strict: bool = True) -> bool:
+    """Evaluates whether the extracted answer matches ground truth (strict: explicit marker required)."""
+    pred = extract_numerical_answer(pred_text, strict=strict)
     if pred is None:
         return False
     return abs(pred - ground_truth) <= tolerance

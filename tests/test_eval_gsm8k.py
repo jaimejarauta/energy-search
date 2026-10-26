@@ -31,7 +31,9 @@ def test_extract_numerical_answer_patterns():
 
 def test_evaluate_answer():
     assert evaluate_answer("The result is #### 42", 42.0)
-    assert evaluate_answer("Total is 100.0001", 100.0, tolerance=1e-3)
+    assert evaluate_answer("Total is 100.0001", 100.0, tolerance=1e-3, strict=False)
+    # strict (default): a bare trailing number is not an answer, so rambling continuations score 0
+    assert not evaluate_answer("Total is 100.0001", 100.0, tolerance=1e-3)
     assert not evaluate_answer("The result is #### 43", 42.0)
     assert not evaluate_answer("No number found", 10.0)
 
@@ -97,3 +99,11 @@ def test_standalone_gsm8k_suite():
     # Test loading with cycling
     dataset_35 = load_gsm8k_dataset(num_samples=35, use_standalone=True)
     assert len(dataset_35) == 35
+
+
+def test_truncate_at_answer():
+    from energy_search.benchmarks import truncate_at_answer
+    text = "So 3 + 4 = 7. #### 7\nQuestion: next problem 99 ..."
+    assert truncate_at_answer(text) == "So 3 + 4 = 7. #### 7"
+    assert truncate_at_answer("Thus the answer is 12. Then") == "Thus the answer is 12"
+    assert truncate_at_answer("no answer yet") is None
